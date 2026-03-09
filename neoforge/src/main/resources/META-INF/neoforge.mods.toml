@@ -1,0 +1,38 @@
+modLoader = "javafml"
+loaderVersion = "[2,)"
+#issueTrackerURL = ""
+license = "MIT"
+
+[[mods]]
+modId = "chunkpermits"
+version = "${version}"
+displayName = "Chunk Permits"
+authors = "Kris HD"
+description = '''
+A mod that adds chunk protetction that can be stolen by other players.
+'''
+#logoFile = ""
+
+[[dependencies.chunkpermits]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.chunkpermits]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.chunkpermits]]
+modId = "architectury"
+type = "required"
+versionRange = "[13.0.8,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[mixins]]
+config = "chunkpermits.mixins.json"
