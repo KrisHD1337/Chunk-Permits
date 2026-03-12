@@ -16,7 +16,7 @@ import java.util.Properties;
 import java.util.UUID;
 
 public final class SqliteClaimRepository implements ClaimRepository {
-    private final String jdbcUrl;
+    private final Connection connection;
     private final Driver sqliteDriver;
 
     public SqliteClaimRepository(Path databasePath) {
@@ -29,8 +29,8 @@ public final class SqliteClaimRepository implements ClaimRepository {
             throw new RuntimeException("§cFailed to create database directories", e);
         }
 
-        this.jdbcUrl = "jdbc:sqlite:" + databasePath.toAbsolutePath();
         this.sqliteDriver = createSqliteDriver();
+        this.connection = createConnection(databasePath);
         initDatabase();
     }
 
@@ -60,12 +60,18 @@ public final class SqliteClaimRepository implements ClaimRepository {
         throw new RuntimeException("SQLite JDBC driver not found on runtime classpath");
     }
 
-    private Connection openConnection() throws SQLException {
-        Connection connection = sqliteDriver.connect(jdbcUrl, new Properties());
-        if (connection == null) {
-            throw new SQLException("SQLite driver rejected URL: " + jdbcUrl);
+    private Connection createConnection(Path databasePath) {
+        String jdbcUrl = "jdbc:sqlite:" + databasePath.toAbsolutePath();
+
+        try {
+            Connection connection = sqliteDriver.connect(jdbcUrl, new Properties());
+            if (connection == null) {
+                throw new SQLException("SQLite driver rejected URL: " + jdbcUrl);
+            }
+            return connection;
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to open SQLite connection", e);
         }
-        return connection;
     }
 
     private void initDatabase() {
@@ -80,8 +86,7 @@ public final class SqliteClaimRepository implements ClaimRepository {
                 )
                 """;
 
-        try (Connection connection = openConnection();
-             Statement statement = connection.createStatement()) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.execute(sql);
         } catch (SQLException e) {
             throw new RuntimeException("§cFailed to initialize claims database", e);
@@ -96,8 +101,7 @@ public final class SqliteClaimRepository implements ClaimRepository {
                 WHERE level_key = ? AND chunk_x = ? AND chunk_z = ?
                 """;
 
-        try (Connection connection = openConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
 
             statement.setString(1, key.levelKey());
             statement.setInt(2, key.chunkX());
@@ -127,8 +131,7 @@ public final class SqliteClaimRepository implements ClaimRepository {
                 LIMIT 1
                 """;
 
-        try (Connection connection = openConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
 
             statement.setString(1, key.levelKey());
             statement.setInt(2, key.chunkX());
@@ -153,8 +156,7 @@ public final class SqliteClaimRepository implements ClaimRepository {
                     owner_name = excluded.owner_name
                 """;
 
-        try (Connection connection = openConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
 
             statement.setString(1, claim.key().levelKey());
             statement.setInt(2, claim.key().chunkX());
@@ -175,8 +177,7 @@ public final class SqliteClaimRepository implements ClaimRepository {
                 WHERE level_key = ? AND chunk_x = ? AND chunk_z = ?
                 """;
 
-        try (Connection connection = openConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
 
             statement.setString(1, key.levelKey());
             statement.setInt(2, key.chunkX());
@@ -196,8 +197,7 @@ public final class SqliteClaimRepository implements ClaimRepository {
                 WHERE level_key = ? AND chunk_x = ? AND chunk_z = ?
                 """;
 
-        try (Connection connection = openConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
 
             statement.setString(1, key.levelKey());
             statement.setInt(2, key.chunkX());
