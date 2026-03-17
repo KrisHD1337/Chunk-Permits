@@ -1,0 +1,174 @@
+package ch.krishd.chunkpermits.neoforge;
+
+import ch.krishd.chunkpermits.ChunkPermitsServices;
+import ch.krishd.chunkpermits.claim.ClaimKey;
+import ch.krishd.chunkpermits.protection.AccessResult;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.BucketItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BarrelBlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.minecraft.world.level.block.entity.ShulkerBoxBlockEntity;
+import net.minecraft.world.level.storage.LevelResource;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.loading.FMLPaths;
+import net.neoforged.neoforge.common.util.TriState;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.event.level.ExplosionEvent;
+import net.neoforged.neoforge.event.server.ServerStartingEvent;
+
+import java.nio.file.Path;
+
+public final class ChunkPermitsNeoForgeEvents {
+    private ChunkPermitsNeoForgeEvents() {
+    }
+
+    @SubscribeEvent
+    public static void onServerStarting(ServerStartingEvent event) {
+        Path configDir = FMLPaths.GAMEDIR.get().resolve("config").resolve("chunkpermits");
+        Path worldDir = event.getServer().getWorldPath(LevelResource.ROOT);
+        ChunkPermitsServices.init(configDir, worldDir.resolve("chunkpermits.db"));
+    }
+
+    @SubscribeEvent
+    public static void onBlockBreak(BlockEvent.BreakEvent event) {
+        if (event.getPlayer() == null) {
+            return;
+        }
+
+        Level level = (Level) event.getLevel();
+        ChunkPos chunkPos = new ChunkPos(event.getPos());
+
+        ClaimKey key = new ClaimKey(
+                level.dimension().location().toString(),
+                chunkPos.x,
+                chunkPos.z
+        );
+
+        AccessResult result = ChunkPermitsServices.ACCESS_SERVICE.canBreak(
+                event.getPlayer().getUUID(),
+                key
+        );
+
+        if (!result.allowed()) {
+            event.setCanceled(true);
+            event.getPlayer().displayClientMessage(Component.literal(result.reason()), true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
+        if (event.getLevel().isClientSide()) {
+            return;
+        }
+
+        if (event.getHand() != InteractionHand.MAIN_HAND) {
+            return;
+        }
+
+        if (!(event.getEntity() instanceof ServerPlayer player)) {
+            return;
+        }
+
+        Level level = event.getLevel();
+        BlockPos pos = event.getPos();
+        ChunkPos chunkPos = new ChunkPos(pos);
+
+        ClaimKey key = new ClaimKey(
+                level.dimension().location().toString(),
+                chunkPos.x,
+                chunkPos.z
+        );
+
+        AccessResult result;
+
+        if (isContainer(level, pos)) {
+            result = ChunkPermitsServices.ACCESS_SERVICE.canOpenContainer(player.getUUID(), key);
+        } else {
+            result = ChunkPermitsServices.ACCESS_SERVICE.canInteract(player.getUUID(), key);
+        }
+
+        if (!result.allowed()) {
+            event.setUseBlock(TriState.FALSE);
+            event.setUseItem(TriState.FALSE);
+            event.setCanceled(true);
+            player.displayClientMessage(Component.literal(result.reason()), true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onRightClickItem(PlayerInteractEvent.RightClickItem event) {
+        if (event.getLevel().isClientSide()) {
+            return;
+        }
+
+        if (event.getHand() != InteractionHand.MAIN_HAND) {
+            return;
+        }
+
+        if (!(event.getEntity() instanceof ServerPlayer player)) {
+            return;
+        }
+
+        ItemStack stack = event.getItemStack();
+
+        if (!(stack.getItem() instanceof BucketItem)) {
+            return;
+        }
+
+        HitResult hit = player.pick(5.0D, 0.0F, false);
+        if (!(hit instanceof BlockHitResult blockHit)) {
+            return;
+        }
+
+        BlockPos pos = blockHit.getBlockPos();
+        ChunkPos chunkPos = new ChunkPos(pos);
+        Level level = event.getLevel();
+
+        ClaimKey key = new ClaimKey(
+                level.dimension().location().toString(),
+                chunkPos.x,
+                chunkPos.z
+        );
+
+        AccessResult result = ChunkPermitsServices.ACCESS_SERVICE.canPlace(player.getUUID(), key);
+
+        if (!result.allowed()) {
+            event.setCanceled(true);
+            player.displayClientMessage(Component.literal(result.reason()), true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onExplosionDetonate(ExplosionEvent.Detonate event) {
+        Level level = event.getLevel();
+
+        event.getAffectedBlocks().removeIf(pos -> {
+            ChunkPos chunkPos = new ChunkPos(pos);
+
+            ClaimKey key = new ClaimKey(
+                    level.dimension().location().toString(),
+                    chunkPos.x,
+                    chunkPos.z
+            );
+
+            return ChunkPermitsServices.CLAIM_REPOSITORY.isClaimed(key);
+        });
+    }
+
+    private static boolean isContainer(Level level, BlockPos pos) {
+        BlockEntity blockEntity = level.getBlockEntity(pos);
+        return blockEntity instanceof ChestBlockEntity
+                || blockEntity instanceof BarrelBlockEntity
+                || blockEntity instanceof ShulkerBoxBlockEntity;
+    }
+}
