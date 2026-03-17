@@ -16,4 +16,6 @@ public interface ClaimRepository {
     void delete(ClaimKey key);
 
     boolean isOwner(ClaimKey key, UUID playerId);
+
+    int countByOwner(UUID playerId);
 }

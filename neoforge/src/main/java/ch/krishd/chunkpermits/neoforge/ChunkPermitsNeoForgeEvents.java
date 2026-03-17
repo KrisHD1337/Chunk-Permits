@@ -11,21 +11,32 @@ import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BarrelBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.entity.ShulkerBoxBlockEntity;
+import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.util.TriState;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.event.level.ExplosionEvent;
+import net.neoforged.neoforge.event.server.ServerStartingEvent;
+
+import java.nio.file.Path;
 
 public final class ChunkPermitsNeoForgeEvents {
     private ChunkPermitsNeoForgeEvents() {
+    }
+
+    @SubscribeEvent
+    public static void onServerStarting(ServerStartingEvent event) {
+        Path configDir = FMLPaths.GAMEDIR.get().resolve("config").resolve("chunkpermits");
+        Path worldDir = event.getServer().getWorldPath(LevelResource.ROOT);
+        ChunkPermitsServices.init(configDir, worldDir.resolve("chunkpermits.db"));
     }
 
     @SubscribeEvent
@@ -138,7 +149,7 @@ public final class ChunkPermitsNeoForgeEvents {
     }
 
     @SubscribeEvent
-    public static void onExplosionDetonate(net.neoforged.neoforge.event.level.ExplosionEvent.Detonate event) {
+    public static void onExplosionDetonate(ExplosionEvent.Detonate event) {
         Level level = event.getLevel();
 
         event.getAffectedBlocks().removeIf(pos -> {

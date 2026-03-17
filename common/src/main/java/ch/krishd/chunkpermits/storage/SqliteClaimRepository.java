@@ -87,7 +87,7 @@ public final class SqliteClaimRepository implements ClaimRepository {
                 """;
 
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.execute(sql);
+            statement.execute();
         } catch (SQLException e) {
             throw new RuntimeException("§cFailed to initialize claims database", e);
         }
@@ -213,6 +213,21 @@ public final class SqliteClaimRepository implements ClaimRepository {
             }
         } catch (SQLException e) {
             throw new RuntimeException("§cFailed to check owner for claim: " + key, e);
+        }
+    }
+
+    @Override
+    public int countByOwner(UUID ownerId) {
+        String sql = "SELECT COUNT(*) FROM claims WHERE owner_uuid = ?";
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, ownerId.toString());
+
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("§cFailed to count claims for owner: " + ownerId, e);
         }
     }
 }
