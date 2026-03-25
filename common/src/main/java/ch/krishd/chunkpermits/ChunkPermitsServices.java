@@ -6,10 +6,9 @@ import ch.krishd.chunkpermits.config.ChunkPermitsConfigLoader;
 import ch.krishd.chunkpermits.protection.AccessService;
 import ch.krishd.chunkpermits.raid.RaidRepository;
 import ch.krishd.chunkpermits.raid.RaidService;
-import ch.krishd.chunkpermits.storage.ClaimRepository;
-import ch.krishd.chunkpermits.storage.SqliteClaimRepository;
-import ch.krishd.chunkpermits.storage.SqliteDatabase;
-import ch.krishd.chunkpermits.storage.SqliteRaidRepository;
+import ch.krishd.chunkpermits.storage.*;
+import ch.krishd.chunkpermits.trust.TrustRepository;
+import ch.krishd.chunkpermits.trust.TrustService;
 
 import java.nio.file.Path;
 
@@ -21,6 +20,8 @@ public final class ChunkPermitsServices {
     public static AccessService ACCESS_SERVICE;
     public static ClaimService CLAIM_SERVICE;
     public static ChunkPermitsConfig CONFIG;
+    public static TrustRepository TRUST_REPOSITORY;
+    public static TrustService TRUST_SERVICE;
 
     private ChunkPermitsServices() {
     }
@@ -31,7 +32,9 @@ public final class ChunkPermitsServices {
         CLAIM_REPOSITORY = new SqliteClaimRepository(DATABASE.connection());
         RAID_REPOSITORY = new SqliteRaidRepository(DATABASE.connection());
         CLAIM_SERVICE = new ClaimService(CLAIM_REPOSITORY, CONFIG.claimRules());
+        TRUST_REPOSITORY = new SqliteTrustRepository(DATABASE.connection());
+        TRUST_SERVICE = new TrustService(TRUST_REPOSITORY, RAID_REPOSITORY);
         RAID_SERVICE = new RaidService(RAID_REPOSITORY, CONFIG.raidRules());
-        ACCESS_SERVICE = new AccessService(CLAIM_REPOSITORY, RAID_SERVICE);
+        ACCESS_SERVICE = new AccessService(CLAIM_REPOSITORY, RAID_SERVICE, TRUST_SERVICE);
     }
 }

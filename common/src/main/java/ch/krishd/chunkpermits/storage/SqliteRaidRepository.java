@@ -199,4 +199,19 @@ public final class SqliteRaidRepository implements RaidRepository {
             throw new RuntimeException("Failed to delete expired raid access", e);
         }
     }
+    @Override
+    public void deleteByAttackerAndVictim(UUID attacker, UUID victim) {
+        String sql = """
+            DELETE FROM raids
+            WHERE attacker_uuid = ? AND victim_uuid = ?
+            """;
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, attacker.toString());
+            statement.setString(2, victim.toString());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to delete raid access", e);
+        }
+    }
 }

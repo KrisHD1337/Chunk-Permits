@@ -16,4 +16,6 @@ public interface RaidRepository {
     void delete(UUID attacker, UUID victim);
 
     void deleteExpired(long now);
+
+    void deleteByAttackerAndVictim(UUID attacker, UUID victim);
 }

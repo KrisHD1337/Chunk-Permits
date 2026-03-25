@@ -7,6 +7,7 @@ import ch.krishd.chunkpermits.protection.AccessResult;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
@@ -187,6 +188,91 @@ public final class ChunkPermitsNeoForgeCommands {
                                             return 1;
                                         }))
                         )
+                        .then(Commands.literal("trust")
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                    player.sendSystemMessage(Component.literal("§e/permit trust add <player>"));
+                                    player.sendSystemMessage(Component.literal("§e/permit trust remove <player>"));
+                                    player.sendSystemMessage(Component.literal("§e/permit trust list"));
+                                    return 1;
+                                })
+                                .then(Commands.literal("add")
+                                        .then(Commands.argument("player", EntityArgument.player())
+                                                .executes(context -> {
+                                                    ServerPlayer owner = context.getSource().getPlayerOrException();
+                                                    ServerPlayer target = EntityArgument.getPlayer(context, "player");
+
+                                                    AccessResult result = ChunkPermitsServices.TRUST_SERVICE.addTrust(
+                                                            owner.getUUID(),
+                                                            owner.getGameProfile().getName(),
+                                                            target.getUUID(),
+                                                            target.getGameProfile().getName()
+                                                    );
+
+                                                    if (!result.allowed()) {
+                                                        owner.sendSystemMessage(Component.literal(result.reason()));
+                                                        return 0;
+                                                    }
+
+                                                    owner.sendSystemMessage(Component.literal(
+                                                            "§aTrusted " + target.getGameProfile().getName() + " on your claims."
+                                                    ));
+
+                                                    target.sendSystemMessage(Component.literal(
+                                                            "§aYou were trusted on " + owner.getGameProfile().getName() + "'s claims."
+                                                    ));
+
+                                                    return 1;
+                                                })))
+                                .then(Commands.literal("remove")
+                                        .then(Commands.argument("player", EntityArgument.player())
+                                                .executes(context -> {
+                                                    ServerPlayer owner = context.getSource().getPlayerOrException();
+                                                    ServerPlayer target = EntityArgument.getPlayer(context, "player");
+
+                                                    AccessResult result = ChunkPermitsServices.TRUST_SERVICE.removeTrust(
+                                                            owner.getUUID(),
+                                                            target.getUUID()
+                                                    );
+
+                                                    if (!result.allowed()) {
+                                                        owner.sendSystemMessage(Component.literal(result.reason()));
+                                                        return 0;
+                                                    }
+
+                                                    owner.sendSystemMessage(Component.literal(
+                                                            "§eRemoved trust for " + target.getGameProfile().getName() + "."
+                                                    ));
+
+                                                    target.sendSystemMessage(Component.literal(
+                                                            "§eYou were removed from " + owner.getGameProfile().getName() + "'s claims."
+                                                    ));
+
+                                                    return 1;
+                                                })))
+                                .then(Commands.literal("list")
+                                        .executes(context -> {
+                                            ServerPlayer owner = context.getSource().getPlayerOrException();
+
+                                            var trustedPlayers = ChunkPermitsServices.TRUST_SERVICE.getTrustedPlayers(owner.getUUID());
+
+                                            owner.sendSystemMessage(Component.literal("§6Trusted players:"));
+
+                                            if (trustedPlayers.isEmpty()) {
+                                                owner.sendSystemMessage(Component.literal("§7- nobody"));
+                                                return 1;
+                                            }
+
+                                            for (var trust : trustedPlayers) {
+                                                owner.sendSystemMessage(Component.literal(
+                                                        "§a- " + trust.trustedPlayerName()
+                                                ));
+                                            }
+
+                                            return 1;
+                                        }))
+                        )
+
         );
     }
 }

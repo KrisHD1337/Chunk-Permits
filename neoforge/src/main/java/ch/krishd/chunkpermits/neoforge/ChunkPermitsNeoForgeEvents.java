@@ -202,6 +202,10 @@ public final class ChunkPermitsNeoForgeEvents {
             return;
         }
 
+        if (ChunkPermitsServices.TRUST_SERVICE.isTrusted(victim.getUUID(), attacker.getUUID())) {
+            return;
+        }
+
         ChunkPermitsServices.RAID_SERVICE.startRaid(
                 attacker.getUUID(),
                 attacker.getGameProfile().getName(),
