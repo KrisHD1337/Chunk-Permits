@@ -36,10 +36,19 @@ public final class ChunkPermitsConfigLoader {
         int costAmount = parseInt(properties.getProperty("claim.cost.amount"), 16, "claim.cost.amount");
         int maxClaims = parseInt(properties.getProperty("claim.max-claims-per-player"), 16, "claim.max-claims-per-player");
 
+        boolean raidEnabled = Boolean.parseBoolean(properties.getProperty("raid.enabled", "true"));
+        int raidDurationSeconds = parseInt(properties.getProperty("raid.duration-seconds"), 1800, "raid.duration-seconds");
+        boolean victimMustBeOnline = Boolean.parseBoolean(properties.getProperty("raid.victim-must-be-online", "true"));
+
         return new ChunkPermitsConfig(
                 new ClaimRules(
                         new ClaimCost(costItemId, costAmount),
                         maxClaims
+                ),
+                new RaidRules(
+                        raidEnabled,
+                        raidDurationSeconds,
+                        victimMustBeOnline
                 )
         );
     }
@@ -49,6 +58,9 @@ public final class ChunkPermitsConfigLoader {
         defaults.setProperty("claim.cost.item", "minecraft:diamond");
         defaults.setProperty("claim.cost.amount", "16");
         defaults.setProperty("claim.max-claims-per-player", "16");
+        defaults.setProperty("raid.enabled", "true");
+        defaults.setProperty("raid.duration-seconds", "1800");
+        defaults.setProperty("raid.victim-must-be-online", "true");
 
         try (OutputStream outputStream = Files.newOutputStream(configFile)) {
             defaults.store(outputStream, "Chunk Permits configuration");

@@ -17,61 +17,10 @@ import java.util.UUID;
 
 public final class SqliteClaimRepository implements ClaimRepository {
     private final Connection connection;
-    private final Driver sqliteDriver;
 
-    public SqliteClaimRepository(Path databasePath) {
-        try {
-            Path parent = databasePath.getParent();
-            if (parent != null) {
-                Files.createDirectories(parent);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("§cFailed to create database directories", e);
-        }
-
-        this.sqliteDriver = createSqliteDriver();
-        this.connection = createConnection(databasePath);
+    public SqliteClaimRepository(Connection connection) {
+        this.connection = connection;
         initDatabase();
-    }
-
-    private static Driver createSqliteDriver() {
-        ClassLoader[] candidates = new ClassLoader[] {
-                SqliteClaimRepository.class.getClassLoader(),
-                Thread.currentThread().getContextClassLoader(),
-                ClassLoader.getSystemClassLoader()
-        };
-
-        for (ClassLoader loader : candidates) {
-            if (loader == null) {
-                continue;
-            }
-
-            try {
-                Class<?> rawClass = Class.forName("org.sqlite.JDBC", true, loader);
-                Object instance = rawClass.getDeclaredConstructor().newInstance();
-                if (instance instanceof Driver driver) {
-                    return driver;
-                }
-            } catch (ReflectiveOperationException ignored) {
-                // Try next classloader.
-            }
-        }
-
-        throw new RuntimeException("SQLite JDBC driver not found on runtime classpath");
-    }
-
-    private Connection createConnection(Path databasePath) {
-        String jdbcUrl = "jdbc:sqlite:" + databasePath.toAbsolutePath();
-
-        try {
-            Connection connection = sqliteDriver.connect(jdbcUrl, new Properties());
-            if (connection == null) {
-                throw new SQLException("SQLite driver rejected URL: " + jdbcUrl);
-            }
-            return connection;
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to open SQLite connection", e);
-        }
     }
 
     private void initDatabase() {
