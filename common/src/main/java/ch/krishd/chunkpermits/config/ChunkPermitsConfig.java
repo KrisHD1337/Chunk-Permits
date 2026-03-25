@@ -2,7 +2,8 @@ package ch.krishd.chunkpermits.config;
 
 public record ChunkPermitsConfig(
         ClaimRules claimRules,
-        RaidRules raidRules
+        RaidRules raidRules,
+        BorderRules borderRules
 ) {
     public static ChunkPermitsConfig defaults() {
         return new ChunkPermitsConfig(
@@ -14,6 +15,12 @@ public record ChunkPermitsConfig(
                         true,
                         1800,
                         true
+                ),
+                new BorderRules(
+                        15,
+                        8,
+                        "minecraft:end_rod",
+                        "minecraft:happy_villager"
                 )
         );
     }

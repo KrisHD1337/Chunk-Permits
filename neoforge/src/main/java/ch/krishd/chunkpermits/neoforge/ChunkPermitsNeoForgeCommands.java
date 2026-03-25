@@ -3,6 +3,7 @@ package ch.krishd.chunkpermits.neoforge;
 import ch.krishd.chunkpermits.ChunkPermitsServices;
 import ch.krishd.chunkpermits.claim.ClaimAttemptContext;
 import ch.krishd.chunkpermits.claim.ClaimKey;
+import ch.krishd.chunkpermits.neoforge.particles.ChunkBorderDisplayManager;
 import ch.krishd.chunkpermits.protection.AccessResult;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.commands.CommandSourceStack;
@@ -272,6 +273,19 @@ public final class ChunkPermitsNeoForgeCommands {
                                             return 1;
                                         }))
                         )
+                        .then(Commands.literal("border")
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+
+                                    ChunkBorderDisplayManager.startDisplay(player);
+
+                                    player.sendSystemMessage(Component.literal(
+                                            "§aShowing visible claim borders for " +
+                                                    ChunkPermitsServices.CONFIG.borderRules().durationSeconds() +
+                                                    " seconds."
+                                    ));
+                                    return 1;
+                                }))
 
         );
     }

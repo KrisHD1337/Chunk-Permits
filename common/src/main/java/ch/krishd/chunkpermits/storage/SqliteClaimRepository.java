@@ -11,6 +11,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
@@ -177,6 +178,48 @@ public final class SqliteClaimRepository implements ClaimRepository {
             }
         } catch (SQLException e) {
             throw new RuntimeException("§cFailed to count claims for owner: " + ownerId, e);
+        }
+    }
+
+    @Override
+    public List<Claim> findInChunkRange(String levelKey, int minChunkX, int maxChunkX, int minChunkZ, int maxChunkZ) {
+        String sql = """
+            SELECT level_key, chunk_x, chunk_z, owner_uuid, owner_name
+            FROM claims
+            WHERE level_key = ?
+              AND chunk_x BETWEEN ? AND ?
+              AND chunk_z BETWEEN ? AND ?
+            ORDER BY chunk_x ASC, chunk_z ASC
+            """;
+
+        java.util.List<Claim> claims = new java.util.ArrayList<>();
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, levelKey);
+            statement.setInt(2, minChunkX);
+            statement.setInt(3, maxChunkX);
+            statement.setInt(4, minChunkZ);
+            statement.setInt(5, maxChunkZ);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    ClaimKey key = new ClaimKey(
+                            rs.getString("level_key"),
+                            rs.getInt("chunk_x"),
+                            rs.getInt("chunk_z")
+                    );
+
+                    claims.add(new Claim(
+                            key,
+                            UUID.fromString(rs.getString("owner_uuid")),
+                            rs.getString("owner_name")
+                    ));
+                }
+            }
+
+            return claims;
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to find claims in chunk range", e);
         }
     }
 }

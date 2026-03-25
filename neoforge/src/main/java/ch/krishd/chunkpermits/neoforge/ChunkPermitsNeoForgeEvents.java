@@ -2,6 +2,7 @@ package ch.krishd.chunkpermits.neoforge;
 
 import ch.krishd.chunkpermits.ChunkPermitsServices;
 import ch.krishd.chunkpermits.claim.ClaimKey;
+import ch.krishd.chunkpermits.neoforge.particles.ChunkBorderDisplayManager;
 import ch.krishd.chunkpermits.protection.AccessResult;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -228,5 +229,20 @@ public final class ChunkPermitsNeoForgeEvents {
         return blockEntity instanceof ChestBlockEntity
                 || blockEntity instanceof BarrelBlockEntity
                 || blockEntity instanceof ShulkerBoxBlockEntity;
+    }
+
+    @SubscribeEvent
+    public static void onServerTick(net.neoforged.neoforge.event.tick.ServerTickEvent.Post event) {
+        if (event.getServer() == null) {
+            return;
+        }
+
+        for (ServerPlayer player : event.getServer().getPlayerList().getPlayers()) {
+            ChunkBorderDisplayManager.tick(player);
+        }
+
+        ChunkBorderDisplayManager.cleanupOffline(
+                playerUuid -> event.getServer().getPlayerList().getPlayer(playerUuid) != null
+        );
     }
 }
