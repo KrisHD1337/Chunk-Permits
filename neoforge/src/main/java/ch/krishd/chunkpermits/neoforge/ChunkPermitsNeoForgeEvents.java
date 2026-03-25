@@ -204,7 +204,9 @@ public final class ChunkPermitsNeoForgeEvents {
 
         ChunkPermitsServices.RAID_SERVICE.startRaid(
                 attacker.getUUID(),
+                attacker.getGameProfile().getName(),
                 victim.getUUID(),
+                victim.getGameProfile().getName(),
                 System.currentTimeMillis()
         );
 

@@ -138,6 +138,55 @@ public final class ChunkPermitsNeoForgeCommands {
                                     player.sendSystemMessage(Component.literal("/permit info"));
                                     return 1;
                                 }))
+                        .then(Commands.literal("raid")
+                                .then(Commands.literal("info")
+                                        .executes(context -> {
+                                            ServerPlayer player = context.getSource().getPlayerOrException();
+                                            long now = System.currentTimeMillis();
+
+                                            var raidsByAttacker = ChunkPermitsServices.RAID_SERVICE.getActiveRaidsByAttacker(
+                                                    player.getUUID(),
+                                                    now
+                                            );
+
+                                            var raidsByVictim = ChunkPermitsServices.RAID_SERVICE.getActiveRaidsByVictim(
+                                                    player.getUUID(),
+                                                    now
+                                            );
+
+                                            player.sendSystemMessage(Component.literal("§6Raid info"));
+
+                                            player.sendSystemMessage(Component.literal("§eYou can raid:"));
+                                            if (raidsByAttacker.isEmpty()) {
+                                                player.sendSystemMessage(Component.literal("§7- nobody"));
+                                            } else {
+                                                for (var raid : raidsByAttacker) {
+                                                    long remaining = raid.expiresAtEpochMillis() - now;
+                                                    String remainingText = ChunkPermitsNeoForgeRaidInfoHelper.formatRemainingTime(remaining);
+
+                                                    player.sendSystemMessage(Component.literal(
+                                                            "§a- " + raid.victimName() + " §7(" + remainingText + ")"
+                                                    ));
+                                                }
+                                            }
+
+                                            player.sendSystemMessage(Component.literal("§eCan raid you:"));
+                                            if (raidsByVictim.isEmpty()) {
+                                                player.sendSystemMessage(Component.literal("§7- nobody"));
+                                            } else {
+                                                for (var raid : raidsByVictim) {
+                                                    long remaining = raid.expiresAtEpochMillis() - now;
+                                                    String remainingText = ChunkPermitsNeoForgeRaidInfoHelper.formatRemainingTime(remaining);
+
+                                                    player.sendSystemMessage(Component.literal(
+                                                            "§c- " + raid.attackerName() + " §7(" + remainingText + ")"
+                                                    ));
+                                                }
+                                            }
+
+                                            return 1;
+                                        }))
+                        )
         );
     }
 }
