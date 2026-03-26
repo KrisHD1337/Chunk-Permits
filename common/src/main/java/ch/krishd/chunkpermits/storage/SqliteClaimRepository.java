@@ -11,67 +11,17 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 
 public final class SqliteClaimRepository implements ClaimRepository {
     private final Connection connection;
-    private final Driver sqliteDriver;
 
-    public SqliteClaimRepository(Path databasePath) {
-        try {
-            Path parent = databasePath.getParent();
-            if (parent != null) {
-                Files.createDirectories(parent);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("§cFailed to create database directories", e);
-        }
-
-        this.sqliteDriver = createSqliteDriver();
-        this.connection = createConnection(databasePath);
+    public SqliteClaimRepository(Connection connection) {
+        this.connection = connection;
         initDatabase();
-    }
-
-    private static Driver createSqliteDriver() {
-        ClassLoader[] candidates = new ClassLoader[] {
-                SqliteClaimRepository.class.getClassLoader(),
-                Thread.currentThread().getContextClassLoader(),
-                ClassLoader.getSystemClassLoader()
-        };
-
-        for (ClassLoader loader : candidates) {
-            if (loader == null) {
-                continue;
-            }
-
-            try {
-                Class<?> rawClass = Class.forName("org.sqlite.JDBC", true, loader);
-                Object instance = rawClass.getDeclaredConstructor().newInstance();
-                if (instance instanceof Driver driver) {
-                    return driver;
-                }
-            } catch (ReflectiveOperationException ignored) {
-                // Try next classloader.
-            }
-        }
-
-        throw new RuntimeException("SQLite JDBC driver not found on runtime classpath");
-    }
-
-    private Connection createConnection(Path databasePath) {
-        String jdbcUrl = "jdbc:sqlite:" + databasePath.toAbsolutePath();
-
-        try {
-            Connection connection = sqliteDriver.connect(jdbcUrl, new Properties());
-            if (connection == null) {
-                throw new SQLException("SQLite driver rejected URL: " + jdbcUrl);
-            }
-            return connection;
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to open SQLite connection", e);
-        }
     }
 
     private void initDatabase() {
@@ -228,6 +178,48 @@ public final class SqliteClaimRepository implements ClaimRepository {
             }
         } catch (SQLException e) {
             throw new RuntimeException("§cFailed to count claims for owner: " + ownerId, e);
+        }
+    }
+
+    @Override
+    public List<Claim> findInChunkRange(String levelKey, int minChunkX, int maxChunkX, int minChunkZ, int maxChunkZ) {
+        String sql = """
+            SELECT level_key, chunk_x, chunk_z, owner_uuid, owner_name
+            FROM claims
+            WHERE level_key = ?
+              AND chunk_x BETWEEN ? AND ?
+              AND chunk_z BETWEEN ? AND ?
+            ORDER BY chunk_x ASC, chunk_z ASC
+            """;
+
+        java.util.List<Claim> claims = new java.util.ArrayList<>();
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, levelKey);
+            statement.setInt(2, minChunkX);
+            statement.setInt(3, maxChunkX);
+            statement.setInt(4, minChunkZ);
+            statement.setInt(5, maxChunkZ);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    ClaimKey key = new ClaimKey(
+                            rs.getString("level_key"),
+                            rs.getInt("chunk_x"),
+                            rs.getInt("chunk_z")
+                    );
+
+                    claims.add(new Claim(
+                            key,
+                            UUID.fromString(rs.getString("owner_uuid")),
+                            rs.getString("owner_name")
+                    ));
+                }
+            }
+
+            return claims;
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to find claims in chunk range", e);
         }
     }
 }

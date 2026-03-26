@@ -2,6 +2,7 @@ package ch.krishd.chunkpermits.neoforge;
 
 import ch.krishd.chunkpermits.ChunkPermitsServices;
 import ch.krishd.chunkpermits.claim.ClaimKey;
+import ch.krishd.chunkpermits.neoforge.particles.ChunkBorderDisplayManager;
 import ch.krishd.chunkpermits.protection.AccessResult;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -21,6 +22,7 @@ import net.minecraft.world.phys.HitResult;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.util.TriState;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.level.ExplosionEvent;
@@ -41,7 +43,11 @@ public final class ChunkPermitsNeoForgeEvents {
 
     @SubscribeEvent
     public static void onBlockBreak(BlockEvent.BreakEvent event) {
-        if (event.getPlayer() == null) {
+        if (event.getLevel().isClientSide()) {
+            return;
+        }
+
+        if (!(event.getPlayer() instanceof ServerPlayer player)) {
             return;
         }
 
@@ -55,8 +61,10 @@ public final class ChunkPermitsNeoForgeEvents {
         );
 
         AccessResult result = ChunkPermitsServices.ACCESS_SERVICE.canBreak(
-                event.getPlayer().getUUID(),
-                key
+                player.getUUID(),
+                key,
+                ownerUuid -> player.server.getPlayerList().getPlayer(ownerUuid) != null,
+                System.currentTimeMillis()
         );
 
         if (!result.allowed()) {
@@ -92,9 +100,19 @@ public final class ChunkPermitsNeoForgeEvents {
         AccessResult result;
 
         if (isContainer(level, pos)) {
-            result = ChunkPermitsServices.ACCESS_SERVICE.canOpenContainer(player.getUUID(), key);
+            result = ChunkPermitsServices.ACCESS_SERVICE.canInteract(
+                    player.getUUID(),
+                    key,
+                    ownerUuid -> player.server.getPlayerList().getPlayer(ownerUuid) != null,
+                    System.currentTimeMillis()
+            );
         } else {
-            result = ChunkPermitsServices.ACCESS_SERVICE.canInteract(player.getUUID(), key);
+            result = ChunkPermitsServices.ACCESS_SERVICE.canInteract(
+                    player.getUUID(),
+                    key,
+                    ownerUuid -> player.server.getPlayerList().getPlayer(ownerUuid) != null,
+                    System.currentTimeMillis()
+            );
         }
 
         if (!result.allowed()) {
@@ -140,7 +158,12 @@ public final class ChunkPermitsNeoForgeEvents {
                 chunkPos.z
         );
 
-        AccessResult result = ChunkPermitsServices.ACCESS_SERVICE.canPlace(player.getUUID(), key);
+        AccessResult result = ChunkPermitsServices.ACCESS_SERVICE.canPlace(
+                player.getUUID(),
+                key,
+                ownerUuid -> player.server.getPlayerList().getPlayer(ownerUuid) != null,
+                System.currentTimeMillis()
+        );
 
         if (!result.allowed()) {
             event.setCanceled(true);
@@ -165,10 +188,61 @@ public final class ChunkPermitsNeoForgeEvents {
         });
     }
 
+    @SubscribeEvent
+    public static void onLivingDeath(LivingDeathEvent event) {
+        if (event.getEntity().level().isClientSide()) {
+            return;
+        }
+        if (!(event.getEntity() instanceof ServerPlayer victim)) {
+            return;
+        }
+        if (!(event.getSource().getEntity() instanceof ServerPlayer attacker)) {
+            return;
+        }
+        if (victim.getUUID().equals(attacker.getUUID())) {
+            return;
+        }
+
+        if (ChunkPermitsServices.TRUST_SERVICE.isTrusted(victim.getUUID(), attacker.getUUID())) {
+            return;
+        }
+
+        ChunkPermitsServices.RAID_SERVICE.startRaid(
+                attacker.getUUID(),
+                attacker.getGameProfile().getName(),
+                victim.getUUID(),
+                victim.getGameProfile().getName(),
+                System.currentTimeMillis()
+        );
+
+        attacker.sendSystemMessage(Component.literal(
+                "§aYou can now raid " + victim.getGameProfile().getName() + "'s claims temporarily"
+        ));
+
+        victim.sendSystemMessage(Component.literal(
+                "§c" + attacker.getGameProfile().getName() + "can now raid your claims temporarily"
+        ));
+    }
+
     private static boolean isContainer(Level level, BlockPos pos) {
         BlockEntity blockEntity = level.getBlockEntity(pos);
         return blockEntity instanceof ChestBlockEntity
                 || blockEntity instanceof BarrelBlockEntity
                 || blockEntity instanceof ShulkerBoxBlockEntity;
+    }
+
+    @SubscribeEvent
+    public static void onServerTick(net.neoforged.neoforge.event.tick.ServerTickEvent.Post event) {
+        if (event.getServer() == null) {
+            return;
+        }
+
+        for (ServerPlayer player : event.getServer().getPlayerList().getPlayers()) {
+            ChunkBorderDisplayManager.tick(player);
+        }
+
+        ChunkBorderDisplayManager.cleanupOffline(
+                playerUuid -> event.getServer().getPlayerList().getPlayer(playerUuid) != null
+        );
     }
 }
