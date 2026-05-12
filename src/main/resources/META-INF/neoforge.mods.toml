@@ -1,19 +1,36 @@
 modLoader = "javafml"
-loaderVersion = "*"
-license = "LGPLv3"
-issueTrackerURL="https://AuthorExample/TempLate/issues"
+loaderVersion = "[2,)"
+license = "MIT"
 
 [[mods]]
-modId = "template"
+modId = "${id}"
 version = "${version}"
 displayName = "${name}"
-authors = "AuthorExample"
-description = ""
-logoFile = "assets/template/icon.png"
-logoBlur = false
+authors = "Kris HD"
+description = '''
+A mod that adds chunk protection that can be stolen by other players.
+'''
+
+[[dependencies.${id}]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.${id}]]
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.${id}]]
+modId = "architectury"
+type = "required"
+versionRange = "[${architectury_api},)"
+ordering = "AFTER"
+side = "BOTH"
 
 [[mixins]]
-config = "template-common.mixins.json"
-
-[[mixins]]
-config = "template-neoforge.mixins.json"
+config = "chunkpermits.mixins.json"
