@@ -3,29 +3,32 @@
   "id": "${id}",
   "version": "${version}",
   "name": "${name}",
-  "description": "",
+  "description": "A mod that adds chunk protection that can be stolen by other players.",
   "authors": [
-    "AuthorExample"
+    "Kris HD"
   ],
   "contact": {
+    "homepage": ""
   },
-  "license": "LGPLv3",
+  "license": "MIT",
   "icon": "assets/${id}/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
-      "com.example.template.platforms.fabric.TempLateFabric"
+      "ch.krishd.chunkpermits.fabric.ChunkpermitsFabric"
     ],
-    "modmenu": [
-      "com.example.template.platforms.fabric.ModMenuIntegration"
+    "client": [
+      "ch.krishd.chunkpermits.fabric.client.ChunkpermitsFabricClient"
     ]
   },
   "mixins": [
-    "template-common.mixins.json",
-    "template-fabric.mixins.json"
+    "chunkpermits.mixins.json"
   ],
   "depends": {
-    "fabricloader": ">=0.15",
-    "minecraft": "${minecraft}"
+    "fabricloader": ">=0.18.4",
+    "minecraft": "${minecraft}",
+    "java": ">=${java_version}",
+    "architectury": ">=${architectury_api}",
+    "fabric-api": "*"
   }
 }

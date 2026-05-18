@@ -20,79 +20,60 @@ architectury.common(stonecutter.tree.branches.mapNotNull {
     if (stonecutter.current.project !in it) null
     else it.prop("loom.platform")
 })
+
 repositories {
     maven("https://maven.neoforged.net/releases/")
-
-    //modmenu
+    maven("https://maven.architectury.dev/")
     maven("https://maven.terraformersmc.com/")
-    //placeholder api (modmenu depencency)
     maven("https://maven.nucleoid.xyz/")
 }
+
+val shadowBundle: Configuration by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+
 dependencies {
     minecraft("com.mojang:minecraft:$minecraft")
     mappings(loom.officialMojangMappings())
 
+    modImplementation("dev.architectury:architectury-${loader}:${mod.dep("architectury_api")}")
+    runtimeOnly("org.xerial:sqlite-jdbc:${mod.dep("sqlite_jdbc")}")
+    shadowBundle("org.xerial:sqlite-jdbc:${mod.dep("sqlite_jdbc")}")
+
     if (loader == "fabric") {
         modImplementation("net.fabricmc:fabric-loader:${mod.dep("fabric_loader")}")
-//        mappings("net.fabricmc:yarn:$minecraft+build.${mod.dep("yarn_build")}:v2")
-        modImplementation("com.terraformersmc:modmenu:${mod.dep("modmenu_version")}")
-
-        //some features (like automatic resource loading from non vanilla namespaces) work only with fabric API installed
-        //for example translations from assets/modid/lang/en_us.json won't be working, same stuff with textures
-        //but we keep runtime only to not accidentally depend on fabric's api, because it doesn't exist in neo/forge
-        modRuntimeOnly("net.fabricmc.fabric-api:fabric-api:${mod.dep("fabric_version")}")
-
-    }
-    if (loader == "forge") {
-        "forge"("net.minecraftforge:forge:${minecraft}-${mod.dep("forge_loader")}")
-//        mappings("net.fabricmc:yarn:$minecraft+build.${mod.dep("yarn_build")}:v2")
-
-        "io.github.llamalad7:mixinextras-forge:${mod.dep("mixin_extras")}".let {
-            implementation(it)
-            include(it)
-        }
+        modImplementation("net.fabricmc.fabric-api:fabric-api:${mod.dep("fabric_version")}")
+        modCompileOnly("com.terraformersmc:modmenu:${mod.dep("modmenu_version")}")
+        modRuntimeOnly("com.terraformersmc:modmenu:${mod.dep("modmenu_version")}")
     }
     if (loader == "neoforge") {
         "neoForge"("net.neoforged:neoforge:${mod.dep("neoforge_loader")}")
-//        mappings(loom.layered {
-//            mappings("net.fabricmc:yarn:$minecraft+build.${mod.dep("yarn_build")}:v2")
-//            mod.dep("neoforge_patch").takeUnless { it.startsWith('[') }?.let {
-//                mappings("dev.architectury:yarn-mappings-patch-neoforge:$it")
-//            }
-//        })
-
     }
 }
 
 loom {
-    accessWidenerPath = rootProject.file("src/main/resources/template.accesswidener")
+    accessWidenerPath = rootProject.file("src/main/resources/${mod.id}.accesswidener")
 
     decompilers {
-        get("vineflower").apply { // Adds names to lambdas - useful for mixins
+        get("vineflower").apply {
             options.put("mark-corresponding-synthetics", "1")
         }
     }
-    if (loader == "forge") {
-        forge.mixinConfigs(
-            "template-common.mixins.json",
-            "template-forge.mixins.json",
-        )
-    }
 }
-
 
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     localProperties.load(localPropertiesFile.inputStream())
 }
+
 publishMods {
     val modrinthToken = localProperties.getProperty("publish.modrinthToken", "")
     val curseforgeToken = localProperties.getProperty("publish.curseforgeToken", "")
 
-
     file = project.tasks.remapJar.get().archiveFile
-    dryRun = modrinthToken == null || curseforgeToken == null
+    dryRun = modrinthToken.isBlank() || curseforgeToken.isBlank()
 
     displayName = "${mod.name} ${loader.replaceFirstChar { it.uppercase() }} ${property("mod.mc_title")}-${mod.version}"
     version = mod.version
@@ -110,29 +91,31 @@ publishMods {
             requires("fabric-api")
             optional("modmenu")
         }
+        requires("architectury-api")
     }
 
     curseforge {
         projectId = property("publish.curseforge").toString()
-        accessToken = curseforgeToken.toString()
+        accessToken = curseforgeToken
         targets.forEach(minecraftVersions::add)
         if (loader == "fabric") {
             requires("fabric-api")
             optional("modmenu")
         }
+        requires("architectury-api")
     }
 }
 
+val javaVersion = JavaVersion.toVersion(mod.prop("java_version"))
+
 java {
     withSourcesJar()
-    val java = if (stonecutter.eval(minecraft, ">=1.20.5")) JavaVersion.VERSION_21 else JavaVersion.VERSION_17
-    targetCompatibility = java
-    sourceCompatibility = java
+    sourceCompatibility = javaVersion
+    targetCompatibility = javaVersion
 }
 
-val shadowBundle: Configuration by configurations.creating {
-    isCanBeConsumed = false
-    isCanBeResolved = true
+tasks.withType<JavaCompile>().configureEach {
+    options.release.set(javaVersion.majorVersion.toInt())
 }
 
 tasks.shadowJar {
@@ -177,21 +160,22 @@ tasks.processResources {
         "id" to mod.id,
         "name" to mod.name,
         "version" to mod.version,
-        "minecraft" to mod.prop("mc_dep_fabric")
-    )
-    properties(
-        listOf("META-INF/mods.toml", "pack.mcmeta"),
-        "id" to mod.id,
-        "name" to mod.name,
-        "version" to mod.version,
-        "minecraft" to mod.prop("mc_dep_forgelike")
+        "minecraft" to mod.prop("mc_dep_fabric"),
+        "architectury_api" to mod.dep("architectury_api"),
+        "java_version" to mod.prop("java_version")
     )
     properties(
         listOf("META-INF/neoforge.mods.toml", "pack.mcmeta"),
         "id" to mod.id,
         "name" to mod.name,
         "version" to mod.version,
-        "minecraft" to mod.prop("mc_dep_forgelike")
+        "minecraft" to mod.prop("mc_dep_forgelike"),
+        "architectury_api" to mod.dep("architectury_api"),
+        "java_version" to mod.prop("java_version")
+    )
+    properties(
+        listOf("chunkpermits.mixins.json"),
+        "mixin_compat" to mod.prop("mixin_compat")
     )
 }
 

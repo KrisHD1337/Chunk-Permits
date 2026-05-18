@@ -1,0 +1,225 @@
+package ch.krishd.chunkpermits.storage;
+
+import ch.krishd.chunkpermits.claim.Claim;
+import ch.krishd.chunkpermits.claim.ClaimKey;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.List;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.UUID;
+
+public final class SqliteClaimRepository implements ClaimRepository {
+    private final Connection connection;
+
+    public SqliteClaimRepository(Connection connection) {
+        this.connection = connection;
+        initDatabase();
+    }
+
+    private void initDatabase() {
+        String sql = """
+                CREATE TABLE IF NOT EXISTS claims (
+                    level_key TEXT NOT NULL,
+                    chunk_x INTEGER NOT NULL,
+                    chunk_z INTEGER NOT NULL,
+                    owner_uuid TEXT NOT NULL,
+                    owner_name TEXT NOT NULL,
+                    PRIMARY KEY (level_key, chunk_x, chunk_z)
+                )
+                """;
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.execute();
+        } catch (SQLException e) {
+            throw new RuntimeException("§cFailed to initialize claims database", e);
+        }
+    }
+
+    @Override
+    public Optional<Claim> findByKey(ClaimKey key) {
+        String sql = """
+                SELECT owner_uuid, owner_name
+                FROM claims
+                WHERE level_key = ? AND chunk_x = ? AND chunk_z = ?
+                """;
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, key.levelKey());
+            statement.setInt(2, key.chunkX());
+            statement.setInt(3, key.chunkZ());
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next()) {
+                    return Optional.empty();
+                }
+
+                UUID owner = UUID.fromString(resultSet.getString("owner_uuid"));
+                String ownerName = resultSet.getString("owner_name");
+
+                return Optional.of(new Claim(key, owner, ownerName));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("§cFailed to find claim for key: " + key, e);
+        }
+    }
+
+    @Override
+    public boolean isClaimed(ClaimKey key) {
+        String sql = """
+                SELECT 1
+                FROM claims
+                WHERE level_key = ? AND chunk_x = ? AND chunk_z = ?
+                LIMIT 1
+                """;
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, key.levelKey());
+            statement.setInt(2, key.chunkX());
+            statement.setInt(3, key.chunkZ());
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("§cFailed to check if chunk is claimed: " + key, e);
+        }
+    }
+
+    @Override
+    public void save(Claim claim) {
+        String sql = """
+                INSERT INTO claims (level_key, chunk_x, chunk_z, owner_uuid, owner_name)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(level_key, chunk_x, chunk_z)
+                DO UPDATE SET
+                    owner_uuid = excluded.owner_uuid,
+                    owner_name = excluded.owner_name
+                """;
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, claim.key().levelKey());
+            statement.setInt(2, claim.key().chunkX());
+            statement.setInt(3, claim.key().chunkZ());
+            statement.setString(4, claim.owner().toString());
+            statement.setString(5, claim.ownerName());
+
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("§cFailed to save claim: " + claim, e);
+        }
+    }
+
+    @Override
+    public void delete(ClaimKey key) {
+        String sql = """
+                DELETE FROM claims
+                WHERE level_key = ? AND chunk_x = ? AND chunk_z = ?
+                """;
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, key.levelKey());
+            statement.setInt(2, key.chunkX());
+            statement.setInt(3, key.chunkZ());
+
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("§cFailed to delete claim: " + key, e);
+        }
+    }
+
+    @Override
+    public boolean isOwner(ClaimKey key, UUID playerId) {
+        String sql = """
+                SELECT owner_uuid
+                FROM claims
+                WHERE level_key = ? AND chunk_x = ? AND chunk_z = ?
+                """;
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, key.levelKey());
+            statement.setInt(2, key.chunkX());
+            statement.setInt(3, key.chunkZ());
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next()) {
+                    return false;
+                }
+
+                UUID owner = UUID.fromString(resultSet.getString("owner_uuid"));
+                return owner.equals(playerId);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("§cFailed to check owner for claim: " + key, e);
+        }
+    }
+
+    @Override
+    public int countByOwner(UUID ownerId) {
+        String sql = "SELECT COUNT(*) FROM claims WHERE owner_uuid = ?";
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, ownerId.toString());
+
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("§cFailed to count claims for owner: " + ownerId, e);
+        }
+    }
+
+    @Override
+    public List<Claim> findInChunkRange(String levelKey, int minChunkX, int maxChunkX, int minChunkZ, int maxChunkZ) {
+        String sql = """
+            SELECT level_key, chunk_x, chunk_z, owner_uuid, owner_name
+            FROM claims
+            WHERE level_key = ?
+              AND chunk_x BETWEEN ? AND ?
+              AND chunk_z BETWEEN ? AND ?
+            ORDER BY chunk_x ASC, chunk_z ASC
+            """;
+
+        java.util.List<Claim> claims = new java.util.ArrayList<>();
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, levelKey);
+            statement.setInt(2, minChunkX);
+            statement.setInt(3, maxChunkX);
+            statement.setInt(4, minChunkZ);
+            statement.setInt(5, maxChunkZ);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    ClaimKey key = new ClaimKey(
+                            rs.getString("level_key"),
+                            rs.getInt("chunk_x"),
+                            rs.getInt("chunk_z")
+                    );
+
+                    claims.add(new Claim(
+                            key,
+                            UUID.fromString(rs.getString("owner_uuid")),
+                            rs.getString("owner_name")
+                    ));
+                }
+            }
+
+            return claims;
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to find claims in chunk range", e);
+        }
+    }
+}
