@@ -35,9 +35,9 @@ val shadowBundle: Configuration by configurations.creating {
 
 dependencies {
     minecraft("com.mojang:minecraft:$minecraft")
-    // NeoForge 26.1 ships deobfuscated and does not provide mapping artifacts.
-    // Applying Mojang mappings there causes resolution failures.
-    if (!(loader == "neoforge" && minecraft == "26.1")) {
+    // 26.1 targets are deobfuscated and do not publish official mappings artifacts.
+    // Applying Mojang mappings there causes setup failures.
+    if (minecraft != "26.1") {
         mappings(loom.officialMojangMappings())
     }
 
