@@ -36,8 +36,11 @@ val shadowBundle: Configuration by configurations.creating {
 dependencies {
     minecraft("com.mojang:minecraft:$minecraft")
     // 26.1 targets are deobfuscated and do not publish official mappings artifacts.
-    // Applying Mojang mappings there causes setup failures.
-    if (minecraft != "26.1") {
+    // Loom still requires the mappings configuration to have a dependency, so use
+    // Fabric intermediary there and keep Mojang mappings for all other versions.
+    if (minecraft == "26.1") {
+        mappings("net.fabricmc:intermediary:$minecraft:v2")
+    } else {
         mappings(loom.officialMojangMappings())
     }
 
