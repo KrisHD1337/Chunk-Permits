@@ -35,7 +35,11 @@ val shadowBundle: Configuration by configurations.creating {
 
 dependencies {
     minecraft("com.mojang:minecraft:$minecraft")
-    mappings(loom.officialMojangMappings())
+    // NeoForge 26.1 ships deobfuscated and does not provide mapping artifacts.
+    // Applying Mojang mappings there causes resolution failures.
+    if (!(loader == "neoforge" && minecraft == "26.1")) {
+        mappings(loom.officialMojangMappings())
+    }
 
     modImplementation("dev.architectury:architectury-${loader}:${mod.dep("architectury_api")}")
     runtimeOnly("org.xerial:sqlite-jdbc:${mod.dep("sqlite_jdbc")}")
