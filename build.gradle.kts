@@ -22,11 +22,17 @@ architectury.common(stonecutter.tree.branches.mapNotNull {
 })
 
 repositories {
-    maven("https://maven.fabricmc.net/") {
+    val fabricMaven = maven("https://maven.fabricmc.net/") {
         metadataSources {
             mavenPom()
             artifact()
             ignoreGradleMetadataRedirection()
+        }
+    }
+    exclusiveContent {
+        forRepository(fabricMaven)
+        filter {
+            includeGroup("net.fabricmc")
         }
     }
     maven("https://maven.neoforged.net/releases/")
