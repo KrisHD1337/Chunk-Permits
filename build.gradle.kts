@@ -39,7 +39,9 @@ dependencies {
     // Loom still requires the mappings configuration to have a dependency, so use
     // Fabric intermediary there and keep Mojang mappings for all other versions.
     if (minecraft == "26.1") {
-        mappings("net.fabricmc:intermediary:$minecraft:v2")
+        // For 26.1, intermediary publishes module metadata with a synthetic 0.0.0
+        // version. Resolve the concrete jar directly to avoid Gradle metadata checks.
+        mappings("net.fabricmc:intermediary:$minecraft:v2@jar")
     } else {
         mappings(loom.officialMojangMappings())
     }
