@@ -22,6 +22,13 @@ architectury.common(stonecutter.tree.branches.mapNotNull {
 })
 
 repositories {
+    maven("https://maven.fabricmc.net/") {
+        metadataSources {
+            mavenPom()
+            artifact()
+            ignoreGradleMetadataRedirection()
+        }
+    }
     maven("https://maven.neoforged.net/releases/")
     maven("https://maven.architectury.dev/")
     maven("https://maven.terraformersmc.com/")
