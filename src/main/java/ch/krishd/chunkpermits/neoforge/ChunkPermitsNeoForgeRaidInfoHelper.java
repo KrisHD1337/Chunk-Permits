@@ -1,5 +1,5 @@
 //? if neoforge {
-package ch.krishd.chunkpermits.neoforge;
+/*package ch.krishd.chunkpermits.neoforge;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -17,7 +17,7 @@ public final class ChunkPermitsNeoForgeRaidInfoHelper {
 
         ServerPlayer player = server.getPlayerList().getPlayer(uuid);
         if (player != null) {
-            return player.getGameProfile().getName();
+            return player.getName().getString();
         }
 
         return uuid.toString();
@@ -40,4 +40,4 @@ public final class ChunkPermitsNeoForgeRaidInfoHelper {
 
         return seconds + "s";
     }
-}//?}
+}*///?}

@@ -1,5 +1,5 @@
-//? if neoforge {
-/*package ch.krishd.chunkpermits.neoforge.particles;
+//? if fabric {
+package ch.krishd.chunkpermits.fabric.particles;
 
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.server.level.ServerLevel;
@@ -33,4 +33,5 @@ public final class ChunkBorderParticleHelper {
             }
         }
     }
-}*///?}
+}
+//?}

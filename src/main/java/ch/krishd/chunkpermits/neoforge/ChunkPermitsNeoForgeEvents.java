@@ -1,5 +1,5 @@
 //? if neoforge {
-package ch.krishd.chunkpermits.neoforge;
+/*package ch.krishd.chunkpermits.neoforge;
 
 import ch.krishd.chunkpermits.ChunkPermitsServices;
 import ch.krishd.chunkpermits.claim.ClaimKey;
@@ -22,7 +22,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.loading.FMLPaths;
-import net.neoforged.neoforge.common.util.TriState;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
@@ -56,7 +55,7 @@ public final class ChunkPermitsNeoForgeEvents {
         ChunkPos chunkPos = new ChunkPos(event.getPos());
 
         ClaimKey key = new ClaimKey(
-                level.dimension().location().toString(),
+                NeoForgeLevelKeys.levelKey(level),
                 chunkPos.x,
                 chunkPos.z
         );
@@ -64,7 +63,7 @@ public final class ChunkPermitsNeoForgeEvents {
         AccessResult result = ChunkPermitsServices.ACCESS_SERVICE.canBreak(
                 player.getUUID(),
                 key,
-                ownerUuid -> player.server.getPlayerList().getPlayer(ownerUuid) != null,
+                ownerUuid -> level.getServer().getPlayerList().getPlayer(ownerUuid) != null,
                 System.currentTimeMillis()
         );
 
@@ -93,7 +92,7 @@ public final class ChunkPermitsNeoForgeEvents {
         ChunkPos chunkPos = new ChunkPos(pos);
 
         ClaimKey key = new ClaimKey(
-                level.dimension().location().toString(),
+                NeoForgeLevelKeys.levelKey(level),
                 chunkPos.x,
                 chunkPos.z
         );
@@ -104,21 +103,19 @@ public final class ChunkPermitsNeoForgeEvents {
             result = ChunkPermitsServices.ACCESS_SERVICE.canInteract(
                     player.getUUID(),
                     key,
-                    ownerUuid -> player.server.getPlayerList().getPlayer(ownerUuid) != null,
+                    ownerUuid -> level.getServer().getPlayerList().getPlayer(ownerUuid) != null,
                     System.currentTimeMillis()
             );
         } else {
             result = ChunkPermitsServices.ACCESS_SERVICE.canInteract(
                     player.getUUID(),
                     key,
-                    ownerUuid -> player.server.getPlayerList().getPlayer(ownerUuid) != null,
+                    ownerUuid -> level.getServer().getPlayerList().getPlayer(ownerUuid) != null,
                     System.currentTimeMillis()
             );
         }
 
         if (!result.allowed()) {
-            event.setUseBlock(TriState.FALSE);
-            event.setUseItem(TriState.FALSE);
             event.setCanceled(true);
             player.displayClientMessage(Component.literal(result.reason()), true);
         }
@@ -154,7 +151,7 @@ public final class ChunkPermitsNeoForgeEvents {
         Level level = event.getLevel();
 
         ClaimKey key = new ClaimKey(
-                level.dimension().location().toString(),
+                NeoForgeLevelKeys.levelKey(level),
                 chunkPos.x,
                 chunkPos.z
         );
@@ -162,7 +159,7 @@ public final class ChunkPermitsNeoForgeEvents {
         AccessResult result = ChunkPermitsServices.ACCESS_SERVICE.canPlace(
                 player.getUUID(),
                 key,
-                ownerUuid -> player.server.getPlayerList().getPlayer(ownerUuid) != null,
+                ownerUuid -> level.getServer().getPlayerList().getPlayer(ownerUuid) != null,
                 System.currentTimeMillis()
         );
 
@@ -176,17 +173,17 @@ public final class ChunkPermitsNeoForgeEvents {
     public static void onExplosionDetonate(ExplosionEvent.Detonate event) {
         Level level = event.getLevel();
 
-        event.getAffectedBlocks().removeIf(pos -> {
+        affectedExplosionBlocks(event).ifPresent(blocks -> blocks.removeIf(pos -> {
             ChunkPos chunkPos = new ChunkPos(pos);
 
             ClaimKey key = new ClaimKey(
-                    level.dimension().location().toString(),
+                    NeoForgeLevelKeys.levelKey(level),
                     chunkPos.x,
                     chunkPos.z
             );
 
             return ChunkPermitsServices.CLAIM_REPOSITORY.isClaimed(key);
-        });
+        }));
     }
 
     @SubscribeEvent
@@ -210,18 +207,18 @@ public final class ChunkPermitsNeoForgeEvents {
 
         ChunkPermitsServices.RAID_SERVICE.startRaid(
                 attacker.getUUID(),
-                attacker.getGameProfile().getName(),
+                attacker.getName().getString(),
                 victim.getUUID(),
-                victim.getGameProfile().getName(),
+                victim.getName().getString(),
                 System.currentTimeMillis()
         );
 
         attacker.sendSystemMessage(Component.literal(
-                "§aYou can now raid " + victim.getGameProfile().getName() + "'s claims temporarily"
+                "§aYou can now raid " + victim.getName().getString() + "'s claims temporarily"
         ));
 
         victim.sendSystemMessage(Component.literal(
-                "§c" + attacker.getGameProfile().getName() + "can now raid your claims temporarily"
+                "§c" + attacker.getName().getString() + "can now raid your claims temporarily"
         ));
     }
 
@@ -230,6 +227,16 @@ public final class ChunkPermitsNeoForgeEvents {
         return blockEntity instanceof ChestBlockEntity
                 || blockEntity instanceof BarrelBlockEntity
                 || blockEntity instanceof ShulkerBoxBlockEntity;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static java.util.Optional<java.util.List<BlockPos>> affectedExplosionBlocks(ExplosionEvent.Detonate event) {
+        try {
+            Object blocks = event.getClass().getMethod("getAffectedBlocks").invoke(event);
+            return java.util.Optional.of((java.util.List<BlockPos>) blocks);
+        } catch (ReflectiveOperationException ignored) {
+            return java.util.Optional.empty();
+        }
     }
 
     @SubscribeEvent
@@ -247,4 +254,4 @@ public final class ChunkPermitsNeoForgeEvents {
         );
     }
 }
-//?}
+*///?}

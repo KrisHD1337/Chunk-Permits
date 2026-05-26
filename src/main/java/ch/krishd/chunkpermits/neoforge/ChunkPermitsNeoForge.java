@@ -1,5 +1,5 @@
 //? if neoforge {
-package ch.krishd.chunkpermits.neoforge;
+/*package ch.krishd.chunkpermits.neoforge;
 
 import ch.krishd.chunkpermits.Chunkpermits;
 import net.neoforged.bus.api.IEventBus;
@@ -15,4 +15,4 @@ public final class ChunkPermitsNeoForge {
         NeoForge.EVENT_BUS.register(ChunkPermitsNeoForgeEvents.class);
         NeoForge.EVENT_BUS.register(ChunkPermitsNeoForgeCommandEvents.class);
     }
-}//?}
+}*///?}

@@ -1,12 +1,12 @@
-//? if neoforge {
-/*package ch.krishd.chunkpermits.neoforge;
+//? if fabric {
+package ch.krishd.chunkpermits.fabric;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
-public final class ClaimCostHelperNeoForge {
-    private ClaimCostHelperNeoForge() {
+public final class ClaimCostHelperFabric {
+    private ClaimCostHelperFabric() {
     }
 
     public static int countItem(ServerPlayer player, Item item) {
@@ -44,4 +44,4 @@ public final class ClaimCostHelperNeoForge {
         player.containerMenu.broadcastChanges();
     }
 }
-*///?}
+//?}

@@ -1,5 +1,5 @@
 //? if fabric {
-/*package ch.krishd.chunkpermits.fabric.client;
+package ch.krishd.chunkpermits.fabric.client;
 
 import net.fabricmc.api.ClientModInitializer;
 
@@ -9,4 +9,4 @@ public final class ChunkpermitsFabricClient implements ClientModInitializer {
         // This entrypoint is suitable for setting up client-specific logic, such as rendering.
     }
 }
-*///?}
+//?}

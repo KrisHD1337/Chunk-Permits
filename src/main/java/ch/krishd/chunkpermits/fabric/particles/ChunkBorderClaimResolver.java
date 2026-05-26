@@ -1,9 +1,9 @@
-//? if neoforge {
-/*package ch.krishd.chunkpermits.neoforge.particles;
+//? if fabric {
+package ch.krishd.chunkpermits.fabric.particles;
 
 import ch.krishd.chunkpermits.ChunkPermitsServices;
 import ch.krishd.chunkpermits.claim.Claim;
-import ch.krishd.chunkpermits.neoforge.NeoForgeLevelKeys;
+import ch.krishd.chunkpermits.fabric.FabricLevelKeys;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
 
@@ -15,7 +15,7 @@ public final class ChunkBorderClaimResolver {
     }
 
     public static List<VisibleClaim> findVisibleClaims(ServerPlayer player) {
-        String levelKey = NeoForgeLevelKeys.levelKey(player.level());
+        String levelKey = FabricLevelKeys.levelKey(player.level());
         ChunkPos center = player.chunkPosition();
 
         int radius = ChunkPermitsServices.CONFIG.borderRules().radiusChunks();
@@ -48,4 +48,5 @@ public final class ChunkBorderClaimResolver {
 
         return visibleClaims;
     }
-}*///?}
+}
+//?}

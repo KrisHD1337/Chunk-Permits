@@ -1,10 +1,10 @@
-//? if neoforge {
-/*package ch.krishd.chunkpermits.neoforge;
+//? if fabric {
+package ch.krishd.chunkpermits.fabric;
 
 import ch.krishd.chunkpermits.ChunkPermitsServices;
 import ch.krishd.chunkpermits.claim.ClaimAttemptContext;
 import ch.krishd.chunkpermits.claim.ClaimKey;
-import ch.krishd.chunkpermits.neoforge.particles.ChunkBorderDisplayManager;
+import ch.krishd.chunkpermits.fabric.particles.ChunkBorderDisplayManager;
 import ch.krishd.chunkpermits.protection.AccessResult;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.commands.CommandSourceStack;
@@ -15,21 +15,15 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.ChunkPos;
 
-public final class ChunkPermitsNeoForgeCommands {
-    private ChunkPermitsNeoForgeCommands() {
+public final class ChunkPermitsFabricCommands {
+    private ChunkPermitsFabricCommands() {
     }
 
     private static Item resolveConfiguredCostItem() {
         String itemId = ChunkPermitsServices.CONFIG.claimRules().claimCost().itemId();
 
-        var itemOptional = NeoForgeRegistryLookup.getOptional(
-                net.minecraft.core.registries.BuiltInRegistries.ITEM,
-                itemId
-        );
-
-        return itemOptional.orElseThrow(() ->
-                new IllegalStateException("Configured claim cost item does not exist: " + itemId)
-        );
+        return FabricRegistryLookup.getOptional(net.minecraft.core.registries.BuiltInRegistries.ITEM, itemId)
+                .orElseThrow(() -> new IllegalStateException("Configured claim cost item does not exist: " + itemId));
     }
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
@@ -44,13 +38,13 @@ public final class ChunkPermitsNeoForgeCommands {
                                             ChunkPos chunkPos = player.chunkPosition();
 
                                             ClaimKey key = new ClaimKey(
-                                                    NeoForgeLevelKeys.levelKey(player.level()),
+                                                    FabricLevelKeys.levelKey(player.level()),
                                                     chunkPos.x,
                                                     chunkPos.z
                                             );
 
                                             Item costItem = resolveConfiguredCostItem();
-                                            int availableItems = ClaimCostHelperNeoForge.countItem(player, costItem);
+                                            int availableItems = ClaimCostHelperFabric.countItem(player, costItem);
 
                                             AccessResult result = ChunkPermitsServices.CLAIM_SERVICE.claim(
                                                     player.getUUID(),
@@ -65,7 +59,7 @@ public final class ChunkPermitsNeoForgeCommands {
                                             }
 
                                             int costAmount = ChunkPermitsServices.CONFIG.claimRules().claimCost().amount();
-                                            ClaimCostHelperNeoForge.removeItems(player, costItem, costAmount);
+                                            ClaimCostHelperFabric.removeItems(player, costItem, costAmount);
 
                                             player.sendSystemMessage(Component.literal(
                                                     "Claimed chunk " + chunkPos.x + ", " + chunkPos.z
@@ -78,7 +72,7 @@ public final class ChunkPermitsNeoForgeCommands {
                                             ChunkPos chunkPos = player.chunkPosition();
 
                                             ClaimKey key = new ClaimKey(
-                                                    NeoForgeLevelKeys.levelKey(player.level()),
+                                                    FabricLevelKeys.levelKey(player.level()),
                                                     chunkPos.x,
                                                     chunkPos.z
                                             );
@@ -97,8 +91,7 @@ public final class ChunkPermitsNeoForgeCommands {
                                                     "Unclaimed chunk " + chunkPos.x + ", " + chunkPos.z
                                             ));
                                             return 1;
-                                        }))
-                        )
+                                        })))
 
                         .then(Commands.literal("info")
                                 .executes(context -> {
@@ -106,7 +99,7 @@ public final class ChunkPermitsNeoForgeCommands {
                                     ChunkPos chunkPos = player.chunkPosition();
 
                                     ClaimKey key = new ClaimKey(
-                                            NeoForgeLevelKeys.levelKey(player.level()),
+                                            FabricLevelKeys.levelKey(player.level()),
                                             chunkPos.x,
                                             chunkPos.z
                                     );
@@ -166,7 +159,7 @@ public final class ChunkPermitsNeoForgeCommands {
                                             } else {
                                                 for (var raid : raidsByAttacker) {
                                                     long remaining = raid.expiresAtEpochMillis() - now;
-                                                    String remainingText = ChunkPermitsNeoForgeRaidInfoHelper.formatRemainingTime(remaining);
+                                                    String remainingText = ChunkPermitsFabricRaidInfoHelper.formatRemainingTime(remaining);
 
                                                     player.sendSystemMessage(Component.literal(
                                                             "§a- " + raid.victimName() + " §7(" + remainingText + ")"
@@ -180,7 +173,7 @@ public final class ChunkPermitsNeoForgeCommands {
                                             } else {
                                                 for (var raid : raidsByVictim) {
                                                     long remaining = raid.expiresAtEpochMillis() - now;
-                                                    String remainingText = ChunkPermitsNeoForgeRaidInfoHelper.formatRemainingTime(remaining);
+                                                    String remainingText = ChunkPermitsFabricRaidInfoHelper.formatRemainingTime(remaining);
 
                                                     player.sendSystemMessage(Component.literal(
                                                             "§c- " + raid.attackerName() + " §7(" + remainingText + ")"
@@ -189,8 +182,7 @@ public final class ChunkPermitsNeoForgeCommands {
                                             }
 
                                             return 1;
-                                        }))
-                        )
+                                        })))
                         .then(Commands.literal("trust")
                                 .executes(context -> {
                                     ServerPlayer player = context.getSource().getPlayerOrException();
@@ -273,8 +265,7 @@ public final class ChunkPermitsNeoForgeCommands {
                                             }
 
                                             return 1;
-                                        }))
-                        )
+                                        })))
                         .then(Commands.literal("border")
                                 .executes(context -> {
                                     ServerPlayer player = context.getSource().getPlayerOrException();
@@ -292,4 +283,4 @@ public final class ChunkPermitsNeoForgeCommands {
         );
     }
 }
-*///?}
+//?}

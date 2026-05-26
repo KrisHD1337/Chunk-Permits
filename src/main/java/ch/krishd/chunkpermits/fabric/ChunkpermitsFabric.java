@@ -1,5 +1,5 @@
 //? if fabric {
-/*package ch.krishd.chunkpermits.fabric;
+package ch.krishd.chunkpermits.fabric;
 
 import ch.krishd.chunkpermits.Chunkpermits;
 import net.fabricmc.api.ModInitializer;
@@ -13,6 +13,7 @@ public final class ChunkpermitsFabric implements ModInitializer {
 
         // Run our common setup.
         Chunkpermits.init();
+        ChunkPermitsFabricEvents.register();
     }
 }
-*///?}
+//?}

@@ -1,8 +1,7 @@
-//? if neoforge {
-/*package ch.krishd.chunkpermits.neoforge.particles;
+//? if fabric {
+package ch.krishd.chunkpermits.fabric.particles;
 
 import ch.krishd.chunkpermits.ChunkPermitsServices;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
 
@@ -67,4 +66,5 @@ public final class ChunkBorderDisplayManager {
             }
         }
     }
-}*///?}
+}
+//?}
